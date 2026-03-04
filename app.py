@@ -1,9 +1,10 @@
-from flask import Flask
+from flask import Flask, render_template, request, redirect, session
 import os
 import psycopg2
 from urllib.parse import urlparse
 
 app = Flask(__name__)
+app.secret_key = "clave_super_secreta_123"
 
 # Obtener la URL de la base de datos desde Render
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -30,7 +31,6 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Tabla usuarios (administradores)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
             id SERIAL PRIMARY KEY,
@@ -41,7 +41,6 @@ def init_db():
         );
     """)
 
-    # Tabla cursos
     cur.execute("""
         CREATE TABLE IF NOT EXISTS cursos (
             id SERIAL PRIMARY KEY,
@@ -60,7 +59,7 @@ def init_db():
     return "Tablas creadas correctamente 🚀"
 
 
-# NUEVA RUTA PARA CREAR ADMIN
+# Crear administrador
 @app.route("/create-admin")
 def create_admin():
     conn = get_db_connection()
@@ -77,6 +76,43 @@ def create_admin():
     conn.close()
 
     return "Administrador creado 🚀"
+
+
+# LOGIN
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form["email"]
+        password = request.form["password"]
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT * FROM usuarios WHERE email = %s AND password = %s",
+            (email, password)
+        )
+
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if user:
+            session["usuario"] = user[1]
+            return redirect("/admin")
+        else:
+            return "Credenciales incorrectas"
+
+    return render_template("login.html")
+
+
+# PANEL ADMIN
+@app.route("/admin")
+def admin():
+    if "usuario" not in session:
+        return redirect("/login")
+
+    return f"Bienvenido {session['usuario']} al panel administrador 🚀"
 
 
 if __name__ == "__main__":
