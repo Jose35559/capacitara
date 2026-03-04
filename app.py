@@ -59,6 +59,26 @@ def init_db():
 
     return "Tablas creadas correctamente 🚀"
 
+
+# NUEVA RUTA PARA CREAR ADMIN
+@app.route("/create-admin")
+def create_admin():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO usuarios (nombre, email, password, rol)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (email) DO NOTHING;
+    """, ("Juan Carlos", "juanroque2203@gmail.com", "America14", "admin"))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return "Administrador creado 🚀"
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
